@@ -2,9 +2,8 @@ from src.widget import mask_account_card
 
 
 def main() -> None:
-    """Основная функция для тестирования масок.
-    :rtype: None
-    """
+    """Функция для тестирования масок"""
+
     test_cases = [
         "Visa Platinum 7000792289606361",
         "Maestro 7000792289606361",
@@ -14,12 +13,26 @@ def main() -> None:
         "Visa Classic 6831982476737658",
     ]
 
+    cards = []
+    accounts = []
+    errors = []
+
     for test in test_cases:
         try:
             result = mask_account_card(test)
-            print(f"✓ {test} -> {result}")
+            if "Счет" in test:
+                accounts.append((test, result))
+            else:
+                cards.append((test, result))
         except ValueError as e:
-            print(f"✗ {test} -> Ошибка: {e}")
+            errors.append((test, str(e)))
+
+    # Вывод карт
+    for original, masked in cards:
+        print(masked)
+
+    for original, masked in accounts:
+        print(masked)
 
 
 if __name__ == "__main__":
