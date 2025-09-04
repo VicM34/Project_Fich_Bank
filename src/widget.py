@@ -1,11 +1,10 @@
 from datetime import datetime
 
-from src.masks import get_mask_card_number, get_mask_account
+from src.masks import get_mask_account, get_mask_card_number
 
 
 def mask_account_card(account_card_info: str) -> str:
-    """Функция, которая принимает на вход номер счета или карты и возвращает маску
-    """
+    """Функция, которая принимает на вход номер счета или карты и возвращает маску"""
 
     parts = account_card_info.split()
     # Разделяем строку на слова
@@ -41,7 +40,7 @@ def get_date(date_string: str) -> str:
     '2024-03-11T02:26:18.671407' в 'ДД.ММ.ГГГГ'"""
     try:
 
-        if '.' in date_string:
+        if "." in date_string:
             date_obj = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%f")
             # Вводим формат даты с миллисекундами
 

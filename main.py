@@ -11,7 +11,7 @@ def main() -> None:
         "Счет 73654108430135874305",
         "MasterCard 7158300734726758",
         "Счет 64686473678894779589",
-        "Visa Classic 6831982476737658"
+        "Visa Classic 6831982476737658",
     ]
 
     for test in test_cases:
