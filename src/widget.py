@@ -12,7 +12,7 @@ def mask_account_card(account_card_info: str) -> str:
     if len(parts) < 2:
         raise ValueError("Строка должна содержать тип и номер")
 
-    number_str = parts[-1]
+    number_str = parts[-1].replace(" ", "")
     # Извлекаем номер
 
     type_str = " ".join(parts[:-1])
