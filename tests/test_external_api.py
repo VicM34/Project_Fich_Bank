@@ -1,30 +1,21 @@
 import os
-import pytest
-from unittest.mock import patch, MagicMock
 from decimal import Decimal
-from src.external_api import (
-    get_exchange_rates,
-    convert_to_rubles,
-    get_transaction_amount_in_rubles
-)
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from src.external_api import convert_to_rubles, get_exchange_rates, get_transaction_amount_in_rubles
 
 
 class TestExternalAPI:
     """Тесты для модуля external_api"""
 
-    @patch('src.external_api.requests.get')
+    @patch("src.external_api.requests.get")
     def test_get_exchange_rates_success(self, mock_get: MagicMock) -> None:
         """Тест успешного получения курсов валют"""
         # Мокаем ответ API
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "success": True,
-            "rates": {
-                "USD": 0.013,
-                "EUR": 0.011,
-                "KZT": 5.5
-            }
-        }
+        mock_response.json.return_value = {"success": True, "rates": {"USD": 0.013, "EUR": 0.011, "KZT": 5.5}}
         mock_response.raise_for_status.return_value = None
         mock_get.return_value = mock_response
 
@@ -35,21 +26,18 @@ class TestExternalAPI:
         assert result["USD"] == 0.013
         mock_get.assert_called_once()
 
-    @patch('src.external_api.requests.get')
+    @patch("src.external_api.requests.get")
     def test_get_exchange_rates_api_error(self, mock_get: MagicMock) -> None:
         """Тест ошибки API"""
         mock_response = MagicMock()
-        mock_response.json.return_value = {
-            "success": False,
-            "error": {"info": "Invalid API key"}
-        }
+        mock_response.json.return_value = {"success": False, "error": {"info": "Invalid API key"}}
         mock_get.return_value = mock_response
 
         result = get_exchange_rates("invalid_key")
 
         assert result is None
 
-    @patch('src.external_api.requests.get')
+    @patch("src.external_api.requests.get")
     def test_get_exchange_rates_request_error(self, mock_get: MagicMock) -> None:
         """Тест ошибки сети"""
         mock_get.side_effect = Exception("Network error")
@@ -58,7 +46,7 @@ class TestExternalAPI:
 
         assert result is None
 
-    @patch('src.external_api.get_exchange_rates')
+    @patch("src.external_api.get_exchange_rates")
     def test_convert_to_rubles_usd(self, mock_get_rates: MagicMock) -> None:
         """Тест конвертации USD в рубли"""
         mock_get_rates.return_value = {"USD": 0.013, "EUR": 0.011}
@@ -68,7 +56,7 @@ class TestExternalAPI:
         assert result == 1.3  # 100 USD * 0.013 = 1.3 RUB
         mock_get_rates.assert_called_once_with("test_key", "RUB")
 
-    @patch('src.external_api.get_exchange_rates')
+    @patch("src.external_api.get_exchange_rates")
     def test_convert_to_rubles_eur(self, mock_get_rates: MagicMock) -> None:
         """Тест конвертации EUR в рубли"""
         mock_get_rates.return_value = {"USD": 0.013, "EUR": 0.011}
@@ -83,7 +71,7 @@ class TestExternalAPI:
 
         assert result == 100.0
 
-    @patch('src.external_api.get_exchange_rates')
+    @patch("src.external_api.get_exchange_rates")
     def test_convert_to_rubles_currency_not_found(self, mock_get_rates: MagicMock) -> None:
         """Тест когда валюта не найдена в курсах"""
         mock_get_rates.return_value = {"USD": 0.013}
@@ -92,47 +80,32 @@ class TestExternalAPI:
 
         assert result is None
 
-    @patch.dict(os.environ, {'API_KEY': 'test_key'})
-    @patch('src.external_api.convert_to_rubles')
+    @patch.dict(os.environ, {"API_KEY": "test_key"})
+    @patch("src.external_api.convert_to_rubles")
     def test_get_transaction_amount_in_rubles_usd(self, mock_convert: MagicMock) -> None:
         """Тест получения суммы USD транзакции в рублях"""
         mock_convert.return_value = 7500.0
 
-        transaction = {
-            "operationAmount": {
-                "amount": "100.00",
-                "currency": {"code": "USD"}
-            }
-        }
+        transaction = {"operationAmount": {"amount": "100.00", "currency": {"code": "USD"}}}
 
         result = get_transaction_amount_in_rubles(transaction)
 
         assert result == 7500.0
         mock_convert.assert_called_once_with(100.0, "USD", "test_key")
 
-    @patch.dict(os.environ, {'API_KEY': 'test_key'})
+    @patch.dict(os.environ, {"API_KEY": "test_key"})
     def test_get_transaction_amount_in_rubles_rub(self) -> None:
         """Тест получения суммы RUB транзакции"""
-        transaction = {
-            "operationAmount": {
-                "amount": "5000.00",
-                "currency": {"code": "RUB"}
-            }
-        }
+        transaction = {"operationAmount": {"amount": "5000.00", "currency": {"code": "RUB"}}}
 
         result = get_transaction_amount_in_rubles(transaction)
 
         assert result == 5000.0
 
-    @patch.dict(os.environ, {'API_KEY': 'test_key'})
+    @patch.dict(os.environ, {"API_KEY": "test_key"})
     def test_get_transaction_amount_in_rubles_invalid_amount(self) -> None:
         """Тест с невалидной суммой"""
-        transaction = {
-            "operationAmount": {
-                "amount": "invalid",
-                "currency": {"code": "RUB"}
-            }
-        }
+        transaction = {"operationAmount": {"amount": "invalid", "currency": {"code": "RUB"}}}
 
         result = get_transaction_amount_in_rubles(transaction)
 
@@ -141,21 +114,16 @@ class TestExternalAPI:
     def test_get_transaction_amount_in_rubles_no_api_key(self) -> None:
         """Тест когда API ключ не установлен"""
         # Убедимся что переменной нет
-        if 'API_KEY' in os.environ:
-            del os.environ['API_KEY']
+        if "API_KEY" in os.environ:
+            del os.environ["API_KEY"]
 
-        transaction = {
-            "operationAmount": {
-                "amount": "100.00",
-                "currency": {"code": "USD"}
-            }
-        }
+        transaction = {"operationAmount": {"amount": "100.00", "currency": {"code": "USD"}}}
 
         result = get_transaction_amount_in_rubles(transaction)
 
         assert result is None
 
-    @patch.dict(os.environ, {'API_KEY': 'test_key'})
+    @patch.dict(os.environ, {"API_KEY": "test_key"})
     def test_get_transaction_amount_in_rubles_missing_operation_amount(self) -> None:
         """Тест когда нет operationAmount"""
         transaction = {"id": 1, "state": "EXECUTED"}
@@ -169,7 +137,7 @@ def test_rounding() -> None:
     """Тест округления результатов"""
     from src.external_api import convert_to_rubles
 
-    with patch('src.external_api.get_exchange_rates') as mock_rates:
+    with patch("src.external_api.get_exchange_rates") as mock_rates:
         mock_rates.return_value = {"USD": 0.013456}
 
         result = convert_to_rubles(100.0, "USD", "test_key")
@@ -181,7 +149,7 @@ def test_rounding() -> None:
 class TestEdgeCases:
     """Тесты граничных случаев"""
 
-    @patch('src.external_api.get_exchange_rates')
+    @patch("src.external_api.get_exchange_rates")
     def test_convert_to_rubles_zero_amount(self, mock_get_rates: MagicMock) -> None:
         """Тест конвертации нулевой суммы"""
         mock_get_rates.return_value = {"USD": 0.013}
@@ -190,7 +158,7 @@ class TestEdgeCases:
 
         assert result == 0.0
 
-    @patch('src.external_api.get_exchange_rates')
+    @patch("src.external_api.get_exchange_rates")
     def test_convert_to_rubles_negative_amount(self, mock_get_rates: MagicMock) -> None:
         """Тест конвертации отрицательной суммы"""
         mock_get_rates.return_value = {"USD": 0.013}
@@ -199,21 +167,16 @@ class TestEdgeCases:
 
         assert result == -1.3
 
-    @patch.dict(os.environ, {'API_KEY': 'test_key'})
+    @patch.dict(os.environ, {"API_KEY": "test_key"})
     def test_get_transaction_amount_missing_currency_code(self) -> None:
         """Тест когда нет кода валюты"""
-        transaction = {
-            "operationAmount": {
-                "amount": "100.00",
-                "currency": {}  # Нет code
-            }
-        }
+        transaction = {"operationAmount": {"amount": "100.00", "currency": {}}}  # Нет code
 
         result = get_transaction_amount_in_rubles(transaction)
 
         assert result == 100.0  # По умолчанию RUB
 
-    @patch.dict(os.environ, {'API_KEY': 'test_key'})
+    @patch.dict(os.environ, {"API_KEY": "test_key"})
     def test_get_transaction_amount_missing_currency(self) -> None:
         """Тест когда нет currency"""
         transaction = {

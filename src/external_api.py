@@ -1,12 +1,13 @@
 import os
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Dict, Any, Optional
-from decimal import Decimal, ROUND_HALF_UP
 from dotenv import load_dotenv
 
-
 load_dotenv()
-API_KEY =os.getenv('API_KEY')
+API_KEY = os.getenv("API_KEY")
+
 
 def get_exchange_rates(api_key: str, base_currency: str = "RUB") -> Optional[Dict[str, float]]:
     """
@@ -14,9 +15,7 @@ def get_exchange_rates(api_key: str, base_currency: str = "RUB") -> Optional[Dic
     """
     url = f"https://api.apilayer.com/exchangerates_data/latest?base={base_currency}"
 
-    headers = {
-        "apikey": api_key
-    }
+    headers = {"apikey": api_key}
 
     try:
         response = requests.get(url, headers=headers, timeout=10)
@@ -25,7 +24,8 @@ def get_exchange_rates(api_key: str, base_currency: str = "RUB") -> Optional[Dic
         data = response.json()
 
         if data.get("success", False):
-            return data.get("rates", {})
+            rates = data.get("rates", {})
+            return {str(currency): float(rate) for currency, rate in rates.items()}
         else:
             print(f"API error: {data.get('error', {}).get('info', 'Unknown error')}")
             return None
@@ -60,7 +60,7 @@ def convert_to_rubles(amount: float, currency: str, api_key: str) -> Optional[fl
     result = amount * exchange_rate
 
     # Округляем до 2 знаков после запятой
-    result = float(Decimal(str(result)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP))
+    result = float(Decimal(str(result)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
     return result
 

@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 
 def load_transactions(file_path: str) -> List[Dict[str, Any]]:
@@ -13,7 +13,7 @@ def load_transactions(file_path: str) -> List[Dict[str, Any]]:
 
     try:
         # Открываем и читаем файл
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             content = file.read().strip()
 
             # Если файл пустой
