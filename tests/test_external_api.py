@@ -1,8 +1,5 @@
 import os
-from decimal import Decimal
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from src.external_api import convert_to_rubles, get_exchange_rates, get_transaction_amount_in_rubles
 
