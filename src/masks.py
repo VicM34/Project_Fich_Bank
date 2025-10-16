@@ -1,10 +1,10 @@
 import os
 import sys
 
+from src.logger_config import masks_logger
+
 # Добавляем путь к корню проекта для импортов
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.logger_config import masks_logger
 
 
 def get_mask_card_number(card_number: int | str) -> str:

@@ -1,6 +1,4 @@
 import logging
-import os
-from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 
@@ -21,12 +19,11 @@ def setup_logger(name: str, log_file: str, level: str = "INFO") -> logging.Logge
 
     # Форматтер для логов
     formatter = logging.Formatter(
-        fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # Обработчик для файла (перезаписывает файл при каждом запуске)
-    file_handler = logging.FileHandler(log_path, mode='w', encoding='utf-8')
+    file_handler = logging.FileHandler(log_path, mode="w", encoding="utf-8")
     file_handler.setFormatter(formatter)
 
     # Добавляем обработчик к логгеру

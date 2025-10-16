@@ -3,10 +3,10 @@ import os
 import sys
 from typing import Any, Dict, List
 
+from src.logger_config import utils_logger
+
 # Добавляем путь к корню проекта для импортов
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from src.logger_config import utils_logger
 
 
 def load_transactions(file_path: str) -> List[Dict[str, Any]]:
