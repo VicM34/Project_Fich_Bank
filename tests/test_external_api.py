@@ -1,7 +1,15 @@
 import os
 from unittest.mock import MagicMock, patch
 
-from src.external_api import convert_to_rubles, get_exchange_rates, get_transaction_amount_in_rubles
+import requests
+
+from src.external_api import (
+    convert_to_rubles,
+    get_currency_rates,
+    get_exchange_rates,
+    get_stock_prices,
+    get_transaction_amount_in_rubles,
+)
 
 
 class TestExternalAPI:
@@ -10,7 +18,6 @@ class TestExternalAPI:
     @patch("src.external_api.requests.get")
     def test_get_exchange_rates_success(self, mock_get: MagicMock) -> None:
         """Тест успешного получения курсов валют"""
-        # Мокаем ответ API
         mock_response = MagicMock()
         mock_response.json.return_value = {"success": True, "rates": {"USD": 0.013, "EUR": 0.011, "KZT": 5.5}}
         mock_response.raise_for_status.return_value = None
@@ -110,7 +117,6 @@ class TestExternalAPI:
 
     def test_get_transaction_amount_in_rubles_no_api_key(self) -> None:
         """Тест когда API ключ не установлен"""
-        # Убедимся что переменной нет
         if "API_KEY" in os.environ:
             del os.environ["API_KEY"]
 
@@ -140,7 +146,149 @@ def test_rounding() -> None:
         result = convert_to_rubles(100.0, "USD", "test_key")
 
         # Проверяем что результат округлен до 2 знаков
-        assert result == 1.35  # 100 * 0.013456 = 1.3456 → округляем до 1.35
+        assert result == 1.35
+
+
+class TestNetworkErrors:
+    """Тесты сетевых ошибок и граничных случаев"""
+
+    @patch("src.external_api.requests.get")
+    def test_get_exchange_rates_timeout_error(self, mock_get: MagicMock) -> None:
+        """Тест ошибки таймаута"""
+        mock_get.side_effect = requests.exceptions.Timeout("Timeout error")
+
+        result = get_exchange_rates("test_key")
+
+        assert result is None
+
+    @patch("src.external_api.requests.get")
+    def test_get_exchange_rates_connection_error(self, mock_get: MagicMock) -> None:
+        """Тест ошибки соединения"""
+        mock_get.side_effect = requests.exceptions.ConnectionError("Connection error")
+
+        result = get_exchange_rates("test_key")
+
+        assert result is None
+
+    @patch("src.external_api.requests.get")
+    def test_get_exchange_rates_invalid_json(self, mock_get: MagicMock) -> None:
+        """Тест невалидного JSON в ответе"""
+        mock_response = MagicMock()
+        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_get.return_value = mock_response
+
+        result = get_exchange_rates("test_key")
+
+        assert result is None
+
+    @patch("src.external_api.requests.get")
+    def test_get_exchange_rates_missing_rates(self, mock_get: MagicMock) -> None:
+        """Тест когда в ответе нет rates"""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"success": True}  # нет rates
+        mock_get.return_value = mock_response
+
+        result = get_exchange_rates("test_key")
+
+        assert result == {}
+
+
+class TestNewFunctions:
+    """Тесты для новых функций external_api"""
+
+    @patch("src.external_api.get_exchange_rates")
+    def test_get_currency_rates_success(self, mock_get_rates: MagicMock) -> None:
+        """Тест успешного получения курсов валют"""
+        mock_get_rates.return_value = {"USD": 0.013, "EUR": 0.011}
+
+        # Устанавливаем API_KEY в окружении
+        with patch.dict(os.environ, {"API_KEY": "test_api_key"}):
+            result = get_currency_rates(["USD", "EUR"])
+
+            # Проверяем результаты
+            assert len(result) == 2
+            assert result[0]["currency"] == "USD"
+            assert result[0]["rate"] == 0.01  # округлено до 2 знаков
+            assert result[1]["currency"] == "EUR"
+            assert result[1]["rate"] == 0.01
+
+            mock_get_rates.assert_called_once_with("test_api_key", "RUB")
+
+    def test_get_currency_rates_no_api_key(self) -> None:
+        """Тест получения курсов без API ключа"""
+        # Убедимся, что API_KEY нет в окружении
+        with patch.dict(os.environ, {}, clear=True):
+            result = get_currency_rates(["USD", "EUR"])
+            assert result == []
+
+    def test_get_currency_rates_empty_currencies(self) -> None:
+        """Тест получения курсов для пустого списка валют"""
+        result = get_currency_rates([])
+        assert result == []
+
+    @patch("src.external_api.get_exchange_rates")
+    def test_get_currency_rates_currency_not_found(self, mock_get_rates: MagicMock) -> None:
+        """Тест когда валюта не найдена в курсах"""
+        mock_get_rates.return_value = {"USD": 0.013}
+
+        with patch.dict(os.environ, {"API_KEY": "test_api_key"}):
+            result = get_currency_rates(["USD", "EUR"])
+
+            assert len(result) == 1
+            assert result[0]["currency"] == "USD"
+            assert result[0]["rate"] == 0.01
+
+    @patch("src.external_api.get_exchange_rates")
+    def test_get_currency_rates_api_returns_none(self, mock_get_rates: MagicMock) -> None:
+        """Тест когда get_exchange_rates возвращает None"""
+        mock_get_rates.return_value = None
+
+        with patch.dict(os.environ, {"API_KEY": "test_api_key"}):
+            result = get_currency_rates(["USD", "EUR"])
+            assert result == []
+
+    @patch("src.external_api.get_exchange_rates")
+    def test_get_currency_rates_api_returns_empty_dict(self, mock_get_rates: MagicMock) -> None:
+        """Тест когда get_exchange_rates возвращает пустой словарь"""
+        mock_get_rates.return_value = {}
+
+        with patch.dict(os.environ, {"API_KEY": "test_api_key"}):
+            result = get_currency_rates(["USD", "EUR"])
+            assert result == []
+
+    @patch("src.external_api.get_exchange_rates")
+    def test_get_currency_rates_exception_handling(self, mock_get_rates: MagicMock) -> None:
+        """Тест обработки исключений в get_currency_rates"""
+        mock_get_rates.side_effect = Exception("Test exception")
+
+        with patch.dict(os.environ, {"API_KEY": "test_api_key"}):
+            result = get_currency_rates(["USD", "EUR"])
+            assert result == []
+
+    def test_get_stock_prices_success(self) -> None:
+        """Тест получения цен акций"""
+        stocks = ["AAPL", "AMZN", "GOOGL"]
+
+        result = get_stock_prices(stocks)
+
+        assert len(result) == 3
+        assert all("stock" in item and "price" in item for item in result)
+        assert result[0]["stock"] == "AAPL"
+        assert isinstance(result[0]["price"], float)
+
+    def test_get_stock_prices_unknown_stock(self) -> None:
+        """Тест получения цен для неизвестных акций"""
+        stocks = ["UNKNOWN_STOCK"]
+
+        result = get_stock_prices(stocks)
+
+        assert result == []  # неизвестные акции не включаются в результат
+
+    def test_get_stock_prices_empty_list(self) -> None:
+        """Тест получения цен для пустого списка акций"""
+        result = get_stock_prices([])
+
+        assert result == []
 
 
 class TestEdgeCases:

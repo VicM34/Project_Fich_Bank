@@ -38,12 +38,18 @@ def mask_account_card(account_card_info: str) -> str:
 def get_date(date_string: str) -> str:
     """Функция, которая преобразует формат даты из
     '2024-03-11T02:26:18.671407' в 'ДД.ММ.ГГГГ'"""
+    # Обрабатываем пустую строку отдельно
+    if not date_string:
+        return ""
+
     try:
+        # Убираем Z в конце если есть (для CSV файлов)
+        if date_string.endswith("Z"):
+            date_string = date_string[:-1]
 
         if "." in date_string:
             date_obj = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S.%f")
             # Вводим формат даты с миллисекундами
-
         else:
             date_obj = datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S")
             # Вводим формат даты без миллисекунд
@@ -52,5 +58,5 @@ def get_date(date_string: str) -> str:
         # Возвращаем нужный нам формат(ДД.ММ.ГГГГ)
 
     except ValueError:
-        raise ValueError("Неверный формат даты. Ожидается: 'YYYY-MM-DDTHH:MM:SS.microseconds'")
-        # Прописываем конструкцию для обработки вызова ошибки
+        # Для невалидных форматов возвращаем оригинальную строку
+        return date_string
