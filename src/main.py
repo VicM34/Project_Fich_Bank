@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List
 
 from src.file_reader import read_csv_file, read_excel_file
@@ -194,11 +195,11 @@ def bank_app() -> None:
         transactions = load_transactions(file_path)
         print("Для обработки выбран JSON-файл.")
     elif "CSV" in file_choice:
-        file_path = "data/transactions.csv"
+        file_path = os.path.join(os.path.expanduser("~"), "Desktop", "transactions.csv")
         transactions = read_csv_file(file_path)
         print("Для обработки выбран CSV-файл.")
     elif "XLSX" in file_choice:
-        file_path = "data/transactions_excel.xlsx"
+        file_path = os.path.join(os.path.expanduser("~"), "Desktop", "transactions_excel.xlsx")
         transactions = read_excel_file(file_path)
         print("Для обработки выбран XLSX-файл.")
     else:

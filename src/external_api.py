@@ -1,6 +1,7 @@
+import logging
 import os
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import requests
 from dotenv import load_dotenv
@@ -8,8 +9,11 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 
+logger = logging.getLogger(__name__)
 
-def get_exchange_rates(api_key: str, base_currency: str = "RUB") -> Optional[Dict[str, float]]:
+
+# === СУЩЕСТВУЮЩИЕ ФУНКЦИИ ===
+def get_exchange_rates(api_key: str, base_currency: str = "RUB") -> Optional[Dict[str, Any]]:
     """
     Получает текущие курсы валют от API
     """
@@ -36,8 +40,8 @@ def get_exchange_rates(api_key: str, base_currency: str = "RUB") -> Optional[Dic
     except ValueError as e:
         print(f"JSON parsing error: {e}")
         return None
-    except Exception as e:  # ← ДОБАВЬТЕ ЭТУ СТРОКУ
-        print(f"Unexpected error: {e}")  # ← И ЭТУ
+    except Exception as e:
+        print(f"Unexpected error: {e}")
         return None
 
 
@@ -65,7 +69,6 @@ def convert_to_rubles(amount: float, currency: str, api_key: str) -> Optional[fl
     return result
 
 
-# Функция для получения суммы транзакции в рублях
 def get_transaction_amount_in_rubles(transaction: Dict[str, Any]) -> Optional[float]:
     """
     Возвращает сумму транзакции в рублях.
@@ -100,3 +103,64 @@ def get_transaction_amount_in_rubles(transaction: Dict[str, Any]) -> Optional[fl
     except Exception as e:
         print(f"Error processing transaction: {e}")
         return None
+
+
+def get_currency_rates(currencies: List[str]) -> List[Dict[str, Union[str, float]]]:
+    """
+    Получает курсы валют через API для главной страницы
+    """
+    results: List[Dict[str, Union[str, float]]] = []
+    api_key = os.getenv("API_KEY")
+
+    if not api_key:
+        logger.error("API_KEY не найден в переменных окружения")
+        return results
+
+    try:
+        rates = get_exchange_rates(api_key, "RUB")
+
+        if rates:
+            for currency in currencies:
+                if currency in rates:
+                    rate_value = round(rates[currency], 2)
+                    results.append({"currency": currency, "rate": rate_value})
+    except Exception as e:
+        logger.error(f"Ошибка получения курсов валют: {e}")
+
+    return results
+
+
+def get_stock_prices(stocks: List[str]) -> List[Dict[str, Union[str, float]]]:
+    """
+    Получает цены акций через API
+    """
+    results: List[Dict[str, Union[str, float]]] = []
+
+    mock_prices: Dict[str, float] = {
+        "AAPL": 150.12,
+        "AMZN": 3173.18,
+        "GOOGL": 2742.39,
+        "MSFT": 296.71,
+        "TSLA": 1007.08,
+    }
+
+    for stock in stocks:
+        price = mock_prices.get(stock)
+        if price is not None:
+            results.append({"stock": stock, "price": price})  # str  # float
+
+    logger.info(f"Получены цены для {len(results)} акций")
+    return results
+
+
+if __name__ == "__main__":
+    # Тестируем новые функции
+    print("Тестирование currency rates:")
+    currencies = ["USD", "EUR"]
+    currency_rates = get_currency_rates(currencies)
+    print(f"Курсы валют: {currency_rates}")
+
+    print("\nТестирование stock prices:")
+    stocks = ["AAPL", "AMZN", "GOOGL"]
+    stock_prices = get_stock_prices(stocks)
+    print(f"Цены акций: {stock_prices}")
